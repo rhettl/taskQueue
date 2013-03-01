@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title></title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <script type="text/javascript" src="js/libs/jquery-1.9.0/jquery.min.js"></script>
+        <script type="text/javascript">
+            //Task Queue to run any array of "runnable" tasks
+            var taskQueue = function(maxProcesses){
+                this.Q = [];        //array of tasks
+                this.active = [];   //tasks running
+                
+                //Maximum bumber of tasks to run at once. No idea if this will work
+                this.maxProc = (typeof maxProcesses === 'undefined') ? 1 : maxProcesses;
+                
+                //run this when all runnables in queue are completed
+                this.done = function (){};
+                
+                //add 1 runnable or array of runnables
+                this.add = function(n){
+                    if (typeof n === 'array')
+                        for(x in n)
+                            this.Q.push(n[x]);
+                    else this.Q.push(n);
+                    console.log(this.Q);
+                    return this.Q;
+                };
+                //kick off the queue
+                this.start = function(whenDone){
+                    this.done = whenDone;
+                    for (i = 0; i < this.maxProc; i++){
+                        this.next();
+                    }
+                };
+                //hault queue using the runnable.stop();
+                this.stop = function(){};
+                //parse queue
+                this.next = function(){
+                    console.log(this.Q)
+                    if (this.Q.length === 0) {
+                        this.done();
+                        return true;
+                    }
+                    
+                    running = this.Q.shift();
+                    running.done = function(){
+                        running.done();
+                        this.next(); //I question my scope here
+                    }
+                    running.run(this.next);
+                    this.active.push(running);
+                };
+                
+                //add initial runnables
+                for(i in arguments){
+                    this.add(arguments[i]);
+                }
+            };
+            
+            
+            
+            var runnable = function(runThis, stopThis, whenDone){
+                this.run = function(next){
+                    next();
+                };
+                this.stop = function(){};
+                
+                //not sure if this is needed. 
+                //may remove later
+                this.done = function(){};
+                
+                //runThis must be a function that takes in a next 
+                //and runs it at the end of it's success
+                if (typeof runThis === 'function'){
+                    this.run = runThis;
+                }
+                if (typeof stopThis === 'function'){
+                    this.stop = stopThis;
+                }
+                if (typeof whenDone === 'function'){
+                    this.done = whenDone;
+                }
+            };
+        </script>
+    </head>
+    <body>
+        <h1>Task Queue</h1>
+        <div>
+            <span>Click here to add objects to queue.</span><br />
+            <button id="add-btn">Add</button>
+            <button id="start-btn">Start</button><br />
+            <span id="test-text"></span>
+        </div>
+        <div id="visualQ"></div>
+        
+        <script type="text/javascript">
+            $Q = new taskQueue();
+            div = $('<div class="cell"></div>');
+            
+            $('#add-btn').on('click', function(){
+                $Q.add(new runnable(function(next){
+                    $('#visualQ').append(div);
+                    setTimeout(function (){
+                        $('#visualQ div').first().remove();
+                        next();
+                    }, 5000);
+                }));
+            });
+            $('#start-btn').on('click', function(){
+                $Q.start(function (){
+                    $('#test-text').text('DING!!!');
+                });
+            });
+            
+            
+        </script>
+        
+    </body>
+</html>
